@@ -3,9 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro Vehículos - Importar Excel</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>Registro Vehículos - Google Sheets</title>
     <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+        }
+        
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,9 +21,7 @@
         }
         
         body {
-            background-color: #f5f7fa;
-            color: #333;
-            line-height: 1.6;
+            background: #f8f9fa;
             padding: 20px;
         }
         
@@ -26,80 +31,80 @@
         }
         
         header {
-            background-color: #2c3e50;
+            background: var(--primary);
             color: white;
-            padding: 20px;
+            padding: 25px;
+            border-radius: 10px;
             text-align: center;
-            border-radius: 8px;
             margin-bottom: 20px;
         }
         
         h1 {
-            font-size: 2rem;
             margin-bottom: 10px;
         }
         
-        .import-section {
-            background-color: white;
+        .config-section {
+            background: white;
             padding: 25px;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
-        .section-title {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #ecf0f1;
+        .config-step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--secondary);
         }
         
-        /* ESTILOS PARA EL ÁREA DE IMPORTACIÓN - MÁS VISIBLE */
-        .file-upload {
-            border: 3px dashed #3498db;
-            border-radius: 10px;
-            padding: 40px 20px;
-            text-align: center;
-            margin-bottom: 20px;
-            background-color: #e8f4fc;
-            transition: all 0.3s;
-            cursor: pointer;
+        .form-group {
+            margin-bottom: 15px;
         }
         
-        .file-upload:hover {
-            border-color: #2980b9;
-            background-color: #d6eaf8;
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--primary);
         }
         
-        .file-upload.dragover {
-            border-color: #27ae60;
-            background-color: #d5f4e6;
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .file-label {
-            display: inline-block;
-            padding: 15px 30px;
-            background-color: #27ae60;
-            color: white;
+        input, button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
             border-radius: 6px;
-            font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 16px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--secondary);
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            font-weight: 600;
+            transition: all 0.3s;
         }
         
-        .file-label:hover {
-            background-color: #219955;
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
         }
         
-        .file-info {
-            margin-top: 15px;
-            color: #666;
-            font-size: 1rem;
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
         }
         
         .main-content {
@@ -115,53 +120,10 @@
         }
         
         .form-section, .records-section {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        input, button {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-        
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-            margin: 5px 0;
-        }
-        
-        .btn-primary {
-            background-color: #3498db;
-            color: white;
-        }
-        
-        .btn-success {
-            background-color: #27ae60;
-            color: white;
-        }
-        
-        .btn-danger {
-            background-color: #e74c3c;
-            color: white;
         }
         
         .records-table {
@@ -171,14 +133,32 @@
         }
         
         .records-table th, .records-table td {
-            padding: 10px;
+            padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #eee;
         }
         
         .records-table th {
-            background-color: #ecf0f1;
+            background: #f8f9fa;
             font-weight: 600;
+        }
+        
+        .status {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        
+        .status.connected {
+            background: var(--success);
+            color: white;
+        }
+        
+        .status.disconnected {
+            background: var(--danger);
+            color: white;
         }
         
         .notification {
@@ -186,51 +166,54 @@
             top: 20px;
             right: 20px;
             padding: 15px 20px;
-            border-radius: 5px;
+            border-radius: 6px;
             color: white;
             font-weight: 600;
             z-index: 1000;
         }
         
         .notification.success {
-            background-color: #27ae60;
+            background: var(--success);
         }
         
         .notification.error {
-            background-color: #e74c3c;
+            background: var(--danger);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Registro Diario de Vehículos</h1>
-            <p>Importar desde Excel local</p>
+            <h1>🚗 Registro Diario de Vehículos</h1>
+            <p>Con Google Sheets como Base de Datos</p>
         </header>
         
-        <!-- 🟢 ¡ESTA ES EL ÁREA PARA ARRASTRAR EXCEL! -->
-        <div class="import-section">
-            <h2 class="section-title">📁 IMPORTAR DESDE EXCEL</h2>
+        <div class="config-section">
+            <h2>⚙️ Configuración</h2>
             
-            <div class="file-upload" id="file-upload">
-                <input type="file" id="excel-file" class="file-input" accept=".xlsx, .xls">
-                <label for="excel-file" class="file-label">
-                    📁 HAZ CLIC AQUÍ O ARRASTRA TU EXCEL
-                </label>
-                <div class="file-info">
-                    <strong>Formato aceptado:</strong> .xlsx o .xls<br>
-                    <strong>Columnas necesarias:</strong> Fecha, Matrícula, Empresa, Entrada, Salida
+            <div class="config-step">
+                <h3>1. Configura tu Google Apps Script</h3>
+                <p>Sigue los pasos en las instrucciones para crear el script</p>
+            </div>
+            
+            <div class="config-step">
+                <h3>2. Ingresa la URL de tu Script</h3>
+                <div class="form-group">
+                    <label>URL del Google Apps Script:</label>
+                    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/...">
+                    <button id="save-url" class="btn btn-primary" style="margin-top: 10px;">Guardar URL</button>
                 </div>
+                <div id="connection-status" class="status disconnected">Desconectado</div>
             </div>
         </div>
         
         <div class="main-content">
             <div class="form-section">
-                <h2 class="section-title">Registrar Vehículo</h2>
+                <h2>📝 Registrar Vehículo</h2>
                 <form id="vehicle-form">
                     <div class="form-group">
                         <label for="plate">Matrícula</label>
-                        <input type="text" id="plate" placeholder="Ej: ABC123" required>
+                        <input type="text" id="plate" placeholder="ABC123" required>
                     </div>
                     
                     <div class="form-group">
@@ -254,29 +237,23 @@
             </div>
             
             <div class="records-section">
-                <h2 class="section-title">Registros del Día</h2>
+                <h2>📋 Registros del Día</h2>
                 <div id="current-date" style="margin-bottom: 15px; font-weight: 600;"></div>
-                <div class="table-container">
-                    <table class="records-table">
-                        <thead>
-                            <tr>
-                                <th>Matrícula</th>
-                                <th>Empresa</th>
-                                <th>Entrada</th>
-                                <th>Salida</th>
-                            </tr>
-                        </thead>
-                        <tbody id="records-body">
-                        </tbody>
-                    </table>
-                    <div id="no-records-message" style="text-align: center; padding: 20px; color: #666;">
-                        No hay registros. Importa un archivo Excel o agrega nuevos registros.
-                    </div>
-                </div>
                 
-                <div style="margin-top: 20px; display: flex; gap: 10px;">
-                    <button id="export-excel" class="btn btn-primary">Descargar Excel</button>
-                    <button id="export-txt" class="btn btn-success">Descargar TXT</button>
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Matrícula</th>
+                            <th>Empresa</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-body">
+                    </tbody>
+                </table>
+                <div id="no-records" style="text-align: center; padding: 30px; color: #666;">
+                    No hay registros para hoy
                 </div>
             </div>
         </div>
@@ -285,9 +262,178 @@
     <div id="notification" class="notification" style="display: none;"></div>
 
     <script>
-        // Código JavaScript simplificado para la funcionalidad básica
-        let VEHICLE_DATA = { records: [], companies: {} };
-
+        // Configuración
+        let SCRIPT_URL = localStorage.getItem('google_script_url') || '';
+        
+        // Elementos DOM
+        const scriptUrlInput = document.getElementById('script-url');
+        const saveUrlBtn = document.getElementById('save-url');
+        const statusDiv = document.getElementById('connection-status');
+        const vehicleForm = document.getElementById('vehicle-form');
+        const registerExitBtn = document.getElementById('register-exit');
+        const recordsBody = document.getElementById('records-body');
+        const noRecordsDiv = document.getElementById('no-records');
+        const currentDateDiv = document.getElementById('current-date');
+        
+        // Inicializar
+        function init() {
+            scriptUrlInput.value = SCRIPT_URL;
+            updateConnectionStatus();
+            setCurrentDateTime();
+            
+            if (SCRIPT_URL) {
+                loadTodayRecords();
+            }
+            
+            // Event listeners
+            saveUrlBtn.addEventListener('click', saveScriptUrl);
+            vehicleForm.addEventListener('submit', handleFormSubmit);
+            registerExitBtn.addEventListener('click', handleExitRegistration);
+        }
+        
+        function setCurrentDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-ES');
+            const timeStr = now.toTimeString().slice(0, 5);
+            
+            currentDateDiv.textContent = `Fecha: ${dateStr}`;
+            document.getElementById('entry-time').value = timeStr;
+            document.getElementById('exit-time').value = timeStr;
+        }
+        
+        function saveScriptUrl() {
+            SCRIPT_URL = scriptUrlInput.value.trim();
+            if (!SCRIPT_URL) {
+                showNotification('Ingresa una URL válida', 'error');
+                return;
+            }
+            
+            localStorage.setItem('google_script_url', SCRIPT_URL);
+            updateConnectionStatus();
+            showNotification('URL guardada correctamente');
+            loadTodayRecords();
+        }
+        
+        function updateConnectionStatus() {
+            if (SCRIPT_URL) {
+                statusDiv.textContent = 'Conectado';
+                statusDiv.className = 'status connected';
+            } else {
+                statusDiv.textContent = 'Desconectado';
+                statusDiv.className = 'status disconnected';
+            }
+        }
+        
+        async function callGoogleScript(action, data = {}) {
+            if (!SCRIPT_URL) {
+                showNotification('Configura primero la URL del script', 'error');
+                return null;
+            }
+            
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        ...data
+                    })
+                });
+                
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error de conexión', 'error');
+                return null;
+            }
+        }
+        
+        async function loadTodayRecords() {
+            const today = new Date().toISOString().split('T')[0];
+            const result = await callGoogleScript('getRecords', { date: today });
+            
+            if (result && result.success) {
+                displayRecords(result.records);
+            } else if (result) {
+                showNotification(result.error || 'Error cargando registros', 'error');
+            }
+        }
+        
+        function displayRecords(records) {
+            recordsBody.innerHTML = '';
+            
+            if (records.length === 0) {
+                noRecordsDiv.style.display = 'block';
+                return;
+            }
+            
+            noRecordsDiv.style.display = 'none';
+            
+            records.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.plate}</td>
+                    <td>${record.company}</td>
+                    <td>${record.entryTime}</td>
+                    <td>${record.exitTime || '--:--'}</td>
+                `;
+                recordsBody.appendChild(row);
+            });
+        }
+        
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const plate = document.getElementById('plate').value.toUpperCase();
+            const company = document.getElementById('company').value;
+            const entryTime = document.getElementById('entry-time').value;
+            
+            const result = await callGoogleScript('addRecord', {
+                date: new Date().toISOString().split('T')[0],
+                plate: plate,
+                company: company,
+                entryTime: entryTime
+            });
+            
+            if (result && result.success) {
+                showNotification('Entrada registrada correctamente');
+                document.getElementById('plate').value = '';
+                document.getElementById('company').value = '';
+                setCurrentDateTime();
+                loadTodayRecords();
+            } else if (result) {
+                showNotification(result.error, 'error');
+            }
+        }
+        
+        async function handleExitRegistration() {
+            const plate = document.getElementById('plate').value.toUpperCase();
+            const exitTime = document.getElementById('exit-time').value;
+            
+            if (!plate) {
+                showNotification('Ingresa una matrícula', 'error');
+                return;
+            }
+            
+            const result = await callGoogleScript('updateExit', {
+                date: new Date().toISOString().split('T')[0],
+                plate: plate,
+                exitTime: exitTime
+            });
+            
+            if (result && result.success) {
+                showNotification('Salida registrada correctamente');
+                document.getElementById('plate').value = '';
+                setCurrentDateTime();
+                loadTodayRecords();
+            } else if (result) {
+                showNotification(result.error, 'error');
+            }
+        }
+        
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
@@ -298,65 +444,10 @@
                 notification.style.display = 'none';
             }, 3000);
         }
-
-        function getCurrentDate() {
-            return new Date().toISOString().split('T')[0];
-        }
-
-        function getCurrentTime() {
-            return new Date().toTimeString().slice(0, 5);
-        }
-
-        // Configurar el área de arrastre
-        const fileUpload = document.getElementById('file-upload');
-        const fileInput = document.getElementById('excel-file');
-
-        fileUpload.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        fileUpload.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileUpload.classList.add('dragover');
-        });
-
-        fileUpload.addEventListener('dragleave', () => {
-            fileUpload.classList.remove('dragover');
-        });
-
-        fileUpload.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileUpload.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleExcelFile(files[0]);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleExcelFile(e.target.files[0]);
-            }
-        });
-
-        function handleExcelFile(file) {
-            if (!file.name.match(/\.(xlsx|xls)$/)) {
-                showNotification('Por favor, selecciona un archivo Excel (.xlsx o .xls)', 'error');
-                return;
-            }
-
-            showNotification(`Procesando archivo: ${file.name}`, 'success');
-            // Aquí iría el código para procesar el Excel
-            // Por ahora simulamos que se importaron datos
-            setTimeout(() => {
-                showNotification('Archivo Excel procesado correctamente (simulación)', 'success');
-            }, 1000);
-        }
-
-        // Inicializar
-        document.getElementById('entry-time').value = getCurrentTime();
-        document.getElementById('exit-time').value = getCurrentTime();
-        document.getElementById('current-date').textContent = `Fecha: ${getCurrentDate()}`;
+        
+        // Iniciar aplicación
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
+
