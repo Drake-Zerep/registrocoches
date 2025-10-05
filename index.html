@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro Vehículos - Firebase</title>
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <title>Registro Diario de Vehículos - Cloud</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --warning: #f39c12;
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-radius: 5px;
         }
         
         * {
@@ -24,63 +26,55 @@
         }
         
         body {
-            background: #f8f9fa;
-            padding: 20px;
-            color: #2c3e50;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
         }
         
         header {
-            background: linear(135deg, var(--primary), #34495e);
+            background-color: var(--primary-color);
             color: white;
-            padding: 30px;
-            border-radius: 15px;
+            padding: 20px 0;
             text-align: center;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         
         h1 {
-            font-size: 2.5em;
+            font-size: 2.2rem;
             margin-bottom: 10px;
         }
         
-        .status-bar {
-            background: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
         }
         
-        .status {
-            padding: 8px 16px;
+        .cloud-status {
+            background-color: var(--success-color);
+            color: white;
+            padding: 8px 15px;
             border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9em;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: inline-block;
         }
         
-        .status.connected {
-            background: var(--success);
-            color: white;
-        }
-        
-        .status.disconnected {
-            background: var(--danger);
-            color: white;
+        .cloud-status.offline {
+            background-color: var(--accent-color);
         }
         
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
         }
         
         @media (max-width: 768px) {
@@ -89,19 +83,18 @@
             }
         }
         
-        .panel {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .form-section, .records-section {
+            background-color: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
         
-        .panel h2 {
-            color: var(--primary);
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid #ecf0f1;
-            font-size: 1.5em;
+        .section-title {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-color);
         }
         
         .form-group {
@@ -112,164 +105,288 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: var(--primary);
+            color: var(--primary-color);
         }
         
-        input {
+        input, select {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: border 0.3s;
         }
         
-        input:focus {
+        input:focus, select:focus {
             outline: none;
-            border-color: var(--secondary);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
         }
         
-        button {
-            padding: 15px 25px;
+        .btn {
+            padding: 12px 20px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: var(--border-radius);
             cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
             transition: all 0.3s;
-            margin: 5px 0;
         }
         
         .btn-primary {
-            background: var(--secondary);
+            background-color: var(--secondary-color);
             color: white;
         }
         
         .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
+            background-color: #2980b9;
         }
         
         .btn-success {
-            background: var(--success);
+            background-color: var(--success-color);
             color: white;
         }
         
         .btn-success:hover {
-            background: #219955;
-            transform: translateY(-2px);
+            background-color: #219955;
         }
         
         .btn-danger {
-            background: var(--danger);
+            background-color: var(--accent-color);
             color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .calendar-section {
+            margin-top: 30px;
+            background-color: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        
+        .calendar-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .calendar-day {
+            border: 1px solid #ddd;
+            padding: 10px;
+            min-height: 80px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .calendar-day:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .calendar-day.empty {
+            background-color: #f5f5f5;
+            cursor: default;
+        }
+        
+        .calendar-day.today {
+            background-color: rgba(52, 152, 219, 0.1);
+            border: 1px solid var(--secondary-color);
+        }
+        
+        .calendar-day.selected {
+            background-color: rgba(39, 174, 96, 0.2);
+            border: 1px solid var(--success-color);
+        }
+        
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .day-events {
+            font-size: 0.8rem;
+            color: #666;
         }
         
         .records-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
+        }
+        
+        .records-table th, .records-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
         }
         
         .records-table th {
-            background: var(--primary);
-            color: white;
-            padding: 15px;
-            text-align: left;
+            background-color: var(--light-color);
             font-weight: 600;
-        }
-        
-        .records-table td {
-            padding: 15px;
-            border-bottom: 1px solid #ecf0f1;
+            color: var(--primary-color);
         }
         
         .records-table tr:hover {
-            background: #f8f9fa;
+            background-color: #f9f9f9;
+        }
+        
+        .no-records {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .export-options {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary-color);
         }
         
         .notification {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 20px 25px;
-            border-radius: 10px;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
             color: white;
             font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 1000;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transform: translateX(400px);
-            transition: transform 0.3s;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
         }
         
         .notification.show {
-            transform: translateX(0);
+            opacity: 1;
+            transform: translateY(0);
         }
         
         .notification.success {
-            background: var(--success);
+            background-color: var(--success-color);
         }
         
         .notification.error {
-            background: var(--danger);
+            background-color: var(--accent-color);
         }
         
-        .export-options {
+        .notification.warning {
+            background-color: var(--warning-color);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-title {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+        
+        .modal-actions {
             display: flex;
+            justify-content: flex-end;
             gap: 10px;
             margin-top: 20px;
-            flex-wrap: wrap;
         }
         
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 20px;
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
         }
         
-        .stat-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
+        .sync-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+            animation: pulse 2s infinite;
         }
         
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: var(--primary);
+        .sync-dot.offline {
+            background-color: var(--accent-color);
         }
         
-        .stat-label {
-            font-size: 0.9em;
-            color: #6c757d;
-            margin-top: 5px;
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🚗 Registro Diario de Vehículos</h1>
-            <p>Sistema con Base de Datos Firebase - Datos Compartidos y Permanentes</p>
+            <h1>Registro Diario de Vehículos</h1>
+            <p class="subtitle">Sistema de control de entrada y salida de vehículos - Cloud</p>
+            <div class="cloud-status" id="cloud-status">Conectado a la nube</div>
         </header>
         
-        <div class="status-bar">
-            <div>
-                <strong id="current-date"></strong>
-            </div>
-            <div id="connection-status" class="status disconnected">
-                🔴 Conectando...
-            </div>
-        </div>
-        
         <div class="main-content">
-            <div class="panel">
-                <h2>📝 Registrar Vehículo</h2>
+            <div class="form-section">
+                <h2 class="section-title">Registrar Vehículo</h2>
                 <form id="vehicle-form">
                     <div class="form-group">
                         <label for="plate">Matrícula</label>
@@ -291,59 +408,80 @@
                         <input type="time" id="exit-time">
                     </div>
                     
-                    <button type="submit" class="btn-primary">✅ Registrar Entrada</button>
-                    <button type="button" id="register-exit" class="btn-success">🚪 Registrar Salida</button>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Registrar Entrada</button>
+                        <button type="button" id="register-exit" class="btn btn-success">Registrar Salida</button>
+                    </div>
                 </form>
                 
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="total-today">0</div>
-                        <div class="stat-label">Registros Hoy</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="active-vehicles">0</div>
-                        <div class="stat-label">En Parque</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="total-vehicles">0</div>
-                        <div class="stat-label">Total General</div>
-                    </div>
+                <div class="sync-status">
+                    <div class="sync-dot" id="sync-dot"></div>
+                    <span id="sync-text">Sincronizado</span>
                 </div>
             </div>
             
-            <div class="panel">
-                <h2>📋 Registros del Día</h2>
-                
-                <table class="records-table">
-                    <thead>
-                        <tr>
-                            <th>Matrícula</th>
-                            <th>Empresa</th>
-                            <th>Entrada</th>
-                            <th>Salida</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="records-body">
-                    </tbody>
-                </table>
-                <div id="no-records" style="text-align: center; padding: 40px; color: #6c757d;">
-                    📭 No hay registros para hoy
+            <div class="records-section">
+                <h2 class="section-title">Registros del Día</h2>
+                <div id="current-date" style="margin-bottom: 15px; font-weight: 600;"></div>
+                <div class="table-container">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>Matrícula</th>
+                                <th>Empresa</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-body">
+                            <!-- Los registros se cargarán aquí dinámicamente -->
+                        </tbody>
+                    </table>
+                    <div id="no-records-message" class="no-records">
+                        No hay registros para mostrar
+                    </div>
+                    <div id="loading-records" class="loading" style="display: none;">
+                        Cargando registros...
+                    </div>
                 </div>
                 
                 <div class="export-options">
-                    <button id="export-excel" class="btn-primary">📊 Descargar Excel</button>
-                    <button id="export-txt" class="btn-success">📄 Descargar TXT</button>
-                    <button id="clear-day" class="btn-danger">🗑️ Limpiar Día</button>
+                    <button id="export-txt" class="btn btn-primary">Descargar TXT</button>
+                    <button id="print-records" class="btn btn-success">Imprimir</button>
+                    <button id="backup-data" class="btn btn-warning">Backup</button>
                 </div>
+            </div>
+        </div>
+        
+        <div class="calendar-section">
+            <h2 class="section-title">Calendario de Registros</h2>
+            <div class="calendar-controls">
+                <button id="prev-month" class="btn btn-primary">&lt; Mes Anterior</button>
+                <h3 id="current-month">Mes Actual</h3>
+                <button id="next-month" class="btn btn-primary">Mes Siguiente &gt;</button>
+            </div>
+            <div class="calendar" id="calendar">
+                <!-- El calendario se generará dinámicamente -->
             </div>
         </div>
     </div>
     
     <div id="notification" class="notification"></div>
+    
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Confirmar Eliminación</h3>
+            <p>¿Está seguro de que desea eliminar este registro?</p>
+            <div class="modal-actions">
+                <button id="cancel-delete" class="btn btn-primary">Cancelar</button>
+                <button id="confirm-delete" class="btn btn-danger">Eliminar</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // 🔥 CONFIGURACIÓN FIREBASE - ACTUALIZA ESTOS DATOS
+        // 🔥 CONFIGURACIÓN FIREBASE - DEBES REEMPLAZAR CON TUS PROPIOS DATOS
         const firebaseConfig = {
             apiKey: "AIzaSyCXEh8z0-SuPTDrh3FENY1NZYfma2JZujU",
             authDomain: "registro-vehiculos-3b4aa.firebaseapp.com",
@@ -353,52 +491,80 @@
             appId: "1:434445604707:web:f108f84a83f8666292a556"
         };
 
-        // Variables globales
-        let db;
-        let isConnected = false;
-
         // Inicializar Firebase
-        function initializeFirebase() {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                
-                // Verificar conexión
-                db.enablePersistence()
-                    .then(() => {
-                        isConnected = true;
-                        updateConnectionStatus(true);
-                        showNotification('✅ Conectado a Firebase Firestore', 'success');
-                        loadTodayRecords();
-                        setupRealtimeListener();
-                    })
-                    .catch((err) => {
-                        console.log('Persistencia no soportada:', err);
-                        isConnected = true;
-                        updateConnectionStatus(true);
-                        loadTodayRecords();
-                    });
-                    
-            } catch (error) {
-                console.error('Error inicializando Firebase:', error);
-                updateConnectionStatus(false);
-                showNotification('❌ Error configurando Firebase. Verifica la configuración.', 'error');
-            }
+        const app = initializeApp(firebaseConfig);
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log("Firebase inicializado correctamente");
+        } catch (error) {
+            console.error("Error inicializando Firebase:", error);
         }
 
-        function updateConnectionStatus(connected) {
-            const statusElement = document.getElementById('connection-status');
-            if (connected) {
-                statusElement.textContent = '🟢 Conectado a Firebase';
-                statusElement.className = 'status connected';
-                isConnected = true;
+        // Estado de conexión
+        let isOnline = true;
+
+        // Verificar conexión
+        firebase.firestore().enablePersistence()
+            .then(() => {
+                console.log("Persistencia habilitada");
+                isOnline = true;
+                updateConnectionStatus(true);
+            })
+            .catch((err) => {
+                console.log("Persistencia no soportada:", err);
+                isOnline = navigator.onLine;
+                updateConnectionStatus(isOnline);
+            });
+
+        // Monitorear conexión
+        firebase.firestore().onSnapshotsInSync(() => {
+            isOnline = true;
+            updateConnectionStatus(true);
+        });
+
+        window.addEventListener('online', () => {
+            isOnline = true;
+            updateConnectionStatus(true);
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            updateConnectionStatus(false);
+        });
+
+        function updateConnectionStatus(online) {
+            const statusElement = document.getElementById('cloud-status');
+            const syncDot = document.getElementById('sync-dot');
+            const syncText = document.getElementById('sync-text');
+            
+            if (online) {
+                statusElement.textContent = "Conectado a la nube";
+                statusElement.className = "cloud-status";
+                syncDot.className = "sync-dot";
+                syncText.textContent = "Sincronizado";
             } else {
-                statusElement.textContent = '🔴 Error de conexión';
-                statusElement.className = 'status disconnected';
-                isConnected = false;
+                statusElement.textContent = "Modo sin conexión";
+                statusElement.className = "cloud-status offline";
+                syncDot.className = "sync-dot offline";
+                syncText.textContent = "Sincronizando...";
             }
         }
 
+        // Obtener la fecha actual en formato YYYY-MM-DD
+        function getCurrentDate() {
+            const now = new Date();
+            return now.toISOString().split('T')[0];
+        }
+
+        // Obtener la hora actual en formato HH:MM
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toTimeString().slice(0, 5);
+        }
+
+        // Mostrar notificación
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
@@ -407,272 +573,548 @@
             
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 4000);
+            }, 3000);
         }
 
-        function getCurrentDate() {
-            return new Date().toISOString().split('T')[0];
+        // Cargar registros del día actual
+        function loadTodayRecords() {
+            const currentDate = getCurrentDate();
+            document.getElementById('current-date').textContent = `Fecha: ${formatDisplayDate(currentDate)}`;
+            loadRecordsByDate(currentDate);
         }
 
-        function getCurrentTime() {
-            return new Date().toTimeString().slice(0, 5);
+        // Cargar registros por fecha desde Firebase
+        async function loadRecordsByDate(date) {
+            const recordsBody = document.getElementById('records-body');
+            const noRecordsMessage = document.getElementById('no-records-message');
+            const loadingElement = document.getElementById('loading-records');
+            
+            recordsBody.innerHTML = '';
+            noRecordsMessage.style.display = 'none';
+            loadingElement.style.display = 'block';
+            
+            try {
+                const snapshot = await db.collection('records')
+                    .where('date', '==', date)
+                    .orderBy('entryTime')
+                    .get();
+                
+                const records = [];
+                snapshot.forEach(doc => {
+                    records.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                loadingElement.style.display = 'none';
+                
+                if (records.length === 0) {
+                    noRecordsMessage.style.display = 'block';
+                    return;
+                }
+                
+                noRecordsMessage.style.display = 'none';
+                
+                records.forEach((record) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${record.plate}</td>
+                        <td>${record.company}</td>
+                        <td>${record.entryTime}</td>
+                        <td>${record.exitTime || '--:--'}</td>
+                        <td>
+                            <button class="btn btn-danger delete-record" data-id="${record.id}">Eliminar</button>
+                        </td>
+                    `;
+                    recordsBody.appendChild(row);
+                });
+                
+                // Agregar event listeners a los botones de eliminar
+                document.querySelectorAll('.delete-record').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const recordId = this.getAttribute('data-id');
+                        showDeleteModal(recordId);
+                    });
+                });
+                
+            } catch (error) {
+                console.error("Error cargando registros:", error);
+                loadingElement.style.display = 'none';
+                noRecordsMessage.style.display = 'block';
+                noRecordsMessage.textContent = 'Error cargando registros';
+                showNotification('Error al cargar los registros', 'error');
+            }
         }
 
+        // Mostrar modal de confirmación para eliminar registro
+        function showDeleteModal(recordId) {
+            const modal = document.getElementById('delete-modal');
+            modal.style.display = 'flex';
+            
+            document.getElementById('cancel-delete').onclick = function() {
+                modal.style.display = 'none';
+            };
+            
+            document.getElementById('confirm-delete').onclick = function() {
+                deleteRecord(recordId);
+                modal.style.display = 'none';
+            };
+        }
+
+        // Eliminar registro de Firebase
+        async function deleteRecord(recordId) {
+            try {
+                await db.collection('records').doc(recordId).delete();
+                loadTodayRecords();
+                showNotification('Registro eliminado correctamente');
+            } catch (error) {
+                console.error("Error eliminando registro:", error);
+                showNotification('Error al eliminar el registro', 'error');
+            }
+        }
+
+        // Formatear fecha para mostrar (DD/MM/YYYY)
         function formatDisplayDate(dateString) {
             const [year, month, day] = dateString.split('-');
             return `${day}/${month}/${year}`;
         }
 
-        // Escuchar cambios en tiempo real
-        function setupRealtimeListener() {
-            const today = getCurrentDate();
-            
-            db.collection('vehicles')
-                .where('date', '==', today)
-                .orderBy('timestamp', 'desc')
-                .onSnapshot((snapshot) => {
-                    loadTodayRecords();
-                }, (error) => {
-                    console.error('Error en listener:', error);
-                });
-        }
-
-        // Cargar registros del día
-        async function loadTodayRecords() {
-            if (!isConnected) return;
-            
-            const today = getCurrentDate();
-            document.getElementById('current-date').textContent = 
-                `Fecha: ${formatDisplayDate(today)}`;
+        // Registrar entrada de vehículo en Firebase
+        async function registerEntry(plate, company, entryTime) {
+            const currentDate = getCurrentDate();
             
             try {
-                const snapshot = await db.collection('vehicles')
-                    .where('date', '==', today)
-                    .orderBy('entryTime')
-                    .get();
-                
-                displayRecords(snapshot);
-                updateStats(snapshot);
-                
-            } catch (error) {
-                console.error('Error cargando registros:', error);
-                showNotification('❌ Error cargando registros', 'error');
-            }
-        }
-
-        // Mostrar registros en tabla
-        function displayRecords(snapshot) {
-            const recordsBody = document.getElementById('records-body');
-            const noRecords = document.getElementById('no-records');
-            
-            recordsBody.innerHTML = '';
-            
-            if (snapshot.empty) {
-                noRecords.style.display = 'block';
-                return;
-            }
-            
-            noRecords.style.display = 'none';
-            
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
-                    <td>${data.plate}</td>
-                    <td>${data.company}</td>
-                    <td>${data.entryTime}</td>
-                    <td>${data.exitTime || '--:--'}</td>
-                    <td>
-                        <button onclick="deleteRecord('${doc.id}')" class="btn-danger" style="padding: 8px 12px; font-size: 12px;">
-                            🗑️
-                        </button>
-                    </td>
-                `;
-                
-                recordsBody.appendChild(row);
-            });
-        }
-
-        // Actualizar estadísticas
-        function updateStats(snapshot) {
-            const today = getCurrentDate();
-            let totalToday = 0;
-            let activeVehicles = 0;
-            
-            snapshot.forEach((doc) => {
-                totalToday++;
-                const data = doc.data();
-                if (!data.exitTime) {
-                    activeVehicles++;
-                }
-            });
-            
-            document.getElementById('total-today').textContent = totalToday;
-            document.getElementById('active-vehicles').textContent = activeVehicles;
-            // Total general se podría calcular con otra consulta
-            document.getElementById('total-vehicles').textContent = totalToday;
-        }
-
-        // Eliminar registro
-        async function deleteRecord(docId) {
-            if (!confirm('¿Estás seguro de eliminar este registro?')) return;
-            
-            try {
-                await db.collection('vehicles').doc(docId).delete();
-                showNotification('✅ Registro eliminado');
-            } catch (error) {
-                console.error('Error eliminando:', error);
-                showNotification('❌ Error eliminando registro', 'error');
-            }
-        }
-
-        // Registrar entrada
-        document.getElementById('vehicle-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            if (!isConnected) {
-                showNotification('❌ No hay conexión a la base de datos', 'error');
-                return;
-            }
-            
-            const plate = document.getElementById('plate').value.toUpperCase().trim();
-            const company = document.getElementById('company').value.trim();
-            const entryTime = document.getElementById('entry-time').value;
-            
-            if (!plate || !company) {
-                showNotification('❌ Completa todos los campos', 'error');
-                return;
-            }
-            
-            try {
-                const today = getCurrentDate();
-                
-                // Verificar si ya existe registro sin salida
-                const existingSnapshot = await db.collection('vehicles')
-                    .where('date', '==', today)
+                // Verificar si ya existe un registro sin salida para esta matrícula
+                const existingSnapshot = await db.collection('records')
+                    .where('date', '==', currentDate)
                     .where('plate', '==', plate)
-                    .where('exitTime', '==', '')
+                    .where('exitTime', '==', null)
                     .get();
                 
                 if (!existingSnapshot.empty) {
-                    showNotification('❌ Ya existe un registro sin salida para esta matrícula', 'error');
-                    return;
+                    showNotification('Ya existe un registro de entrada sin salida para esta matrícula', 'error');
+                    return false;
                 }
                 
                 // Agregar nuevo registro
-                await db.collection('vehicles').add({
-                    date: today,
-                    plate: plate,
+                await db.collection('records').add({
+                    plate: plate.toUpperCase(),
                     company: company,
                     entryTime: entryTime,
-                    exitTime: '',
-                    timestamp: new Date()
+                    exitTime: null,
+                    date: currentDate,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
-                showNotification('✅ Entrada registrada correctamente');
+                // Actualizar/agregar empresa
+                await db.collection('companies').doc(plate.toUpperCase()).set({
+                    name: company,
+                    lastUsed: firebase.firestore.FieldValue.serverTimestamp()
+                });
                 
-                // Limpiar formulario
-                document.getElementById('plate').value = '';
-                document.getElementById('company').value = '';
-                document.getElementById('entry-time').value = getCurrentTime();
+                // Actualizar la tabla
+                loadRecordsByDate(currentDate);
+                
+                showNotification('Entrada registrada correctamente');
+                return true;
                 
             } catch (error) {
-                console.error('Error registrando entrada:', error);
-                showNotification('❌ Error registrando entrada', 'error');
+                console.error("Error registrando entrada:", error);
+                showNotification('Error al registrar la entrada', 'error');
+                return false;
             }
-        });
+        }
 
-        // Registrar salida
-        document.getElementById('register-exit').addEventListener('click', async () => {
-            if (!isConnected) {
-                showNotification('❌ No hay conexión a la base de datos', 'error');
-                return;
-            }
-            
-            const plate = document.getElementById('plate').value.toUpperCase().trim();
-            const exitTime = document.getElementById('exit-time').value;
-            
-            if (!plate) {
-                showNotification('❌ Ingresa una matrícula', 'error');
-                return;
-            }
+        // Registrar salida de vehículo en Firebase
+        async function registerExit(plate, exitTime) {
+            const currentDate = getCurrentDate();
             
             try {
-                const today = getCurrentDate();
-                
-                // Buscar registro sin salida
-                const snapshot = await db.collection('vehicles')
-                    .where('date', '==', today)
-                    .where('plate', '==', plate)
-                    .where('exitTime', '==', '')
+                // Buscar registro de entrada sin salida
+                const snapshot = await db.collection('records')
+                    .where('date', '==', currentDate)
+                    .where('plate', '==', plate.toUpperCase())
+                    .where('exitTime', '==', null)
                     .get();
                 
                 if (snapshot.empty) {
-                    showNotification('❌ No se encontró registro de entrada sin salida', 'error');
+                    showNotification('No se encontró un registro de entrada sin salida para esta matrícula', 'error');
+                    return false;
+                }
+                
+                // Actualizar el registro con la hora de salida
+                const doc = snapshot.docs[0];
+                await db.collection('records').doc(doc.id).update({
+                    exitTime: exitTime
+                });
+                
+                // Actualizar la tabla
+                loadRecordsByDate(currentDate);
+                
+                showNotification('Salida registrada correctamente');
+                return true;
+                
+            } catch (error) {
+                console.error("Error registrando salida:", error);
+                showNotification('Error al registrar la salida', 'error');
+                return false;
+            }
+        }
+
+        // Autocompletar empresa basado en la matrícula desde Firebase
+        async function autocompleteCompany(plate) {
+            if (!plate || plate.length < 2) return;
+            
+            try {
+                const doc = await db.collection('companies').doc(plate.toUpperCase()).get();
+                if (doc.exists) {
+                    document.getElementById('company').value = doc.data().name;
+                } else {
+                    document.getElementById('company').value = '';
+                }
+            } catch (error) {
+                console.error("Error autocompletando empresa:", error);
+            }
+        }
+
+        // Generar calendario con datos de Firebase
+        async function generateCalendar(year, month) {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            
+            // Encabezados de los días de la semana
+            const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            daysOfWeek.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-header';
+                dayHeader.textContent = day;
+                calendar.appendChild(dayHeader);
+            });
+            
+            // Obtener el primer día del mes y el número de días
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDay = firstDay.getDay();
+            
+            // Días vacíos al principio
+            for (let i = 0; i < startingDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                calendar.appendChild(emptyDay);
+            }
+            
+            // Obtener conteo de registros por día
+            const daysWithRecords = await getDaysWithRecords(year, month + 1);
+            
+            // Días del mes
+            const currentDate = getCurrentDate();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                // Verificar si es el día actual
+                if (dateString === currentDate) {
+                    dayElement.classList.add('today');
+                }
+                
+                // Verificar si hay registros para este día
+                const recordCount = daysWithRecords[dateString] || 0;
+                
+                dayElement.innerHTML = `
+                    <div class="day-number">${day}</div>
+                    ${recordCount > 0 ? `<div class="day-events">${recordCount} registros</div>` : ''}
+                `;
+                
+                dayElement.addEventListener('click', () => {
+                    // Quitar la clase selected de todos los días
+                    document.querySelectorAll('.calendar-day').forEach(day => {
+                        day.classList.remove('selected');
+                    });
+                    
+                    // Agregar la clase selected al día clickeado
+                    dayElement.classList.add('selected');
+                    
+                    // Cargar los registros de esta fecha
+                    loadRecordsByDate(dateString);
+                    document.getElementById('current-date').textContent = `Fecha: ${formatDisplayDate(dateString)}`;
+                });
+                
+                calendar.appendChild(dayElement);
+            }
+        }
+
+        // Obtener días con registros para el calendario
+        async function getDaysWithRecords(year, month) {
+            const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+            const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+            
+            try {
+                const snapshot = await db.collection('records')
+                    .where('date', '>=', startDate)
+                    .where('date', '<=', endDate)
+                    .get();
+                
+                const daysWithRecords = {};
+                snapshot.forEach(doc => {
+                    const date = doc.data().date;
+                    daysWithRecords[date] = (daysWithRecords[date] || 0) + 1;
+                });
+                
+                return daysWithRecords;
+            } catch (error) {
+                console.error("Error obteniendo días con registros:", error);
+                return {};
+            }
+        }
+
+        // Exportar registros a TXT
+        async function exportToTxt() {
+            const currentDateElement = document.getElementById('current-date').textContent;
+            const date = currentDateElement.split(': ')[1];
+            
+            // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD
+            const [day, month, year] = date.split('/');
+            const dateKey = `${year}-${month}-${day}`;
+            
+            try {
+                const snapshot = await db.collection('records')
+                    .where('date', '==', dateKey)
+                    .orderBy('entryTime')
+                    .get();
+                
+                if (snapshot.empty) {
+                    showNotification('No hay registros para exportar', 'error');
                     return;
                 }
                 
-                // Actualizar el primer registro encontrado
-                const doc = snapshot.docs[0];
-                await db.collection('vehicles').doc(doc.id).update({
-                    exitTime: exitTime,
-                    timestamp: new Date()
-                });
+                let txtContent = `REGISTRO DE VEHÍCULOS - ${date}\n\n`;
+                txtContent += 'Matrícula\tEmpresa\tEntrada\tSalida\n';
                 
-                showNotification('✅ Salida registrada correctamente');
-                
-                // Limpiar formulario
-                document.getElementById('plate').value = '';
-                document.getElementById('exit-time').value = getCurrentTime();
-                
-            } catch (error) {
-                console.error('Error registrando salida:', error);
-                showNotification('❌ Error registrando salida', 'error');
-            }
-        });
-
-        // Exportar funcionalidades (simplificadas)
-        document.getElementById('export-excel').addEventListener('click', () => {
-            showNotification('📊 Descargando Excel...', 'success');
-        });
-
-        document.getElementById('export-txt').addEventListener('click', () => {
-            showNotification('📄 Descargando TXT...', 'success');
-        });
-
-        document.getElementById('clear-day').addEventListener('click', async () => {
-            if (!confirm('¿Estás seguro de eliminar TODOS los registros de hoy?')) return;
-            
-            try {
-                const today = getCurrentDate();
-                const snapshot = await db.collection('vehicles')
-                    .where('date', '==', today)
-                    .get();
-                
-                const batch = db.batch();
                 snapshot.forEach(doc => {
-                    batch.delete(doc.ref);
+                    const record = doc.data();
+                    txtContent += `${record.plate}\t${record.company}\t${record.entryTime}\t${record.exitTime || '--:--'}\n`;
                 });
                 
-                await batch.commit();
-                showNotification('✅ Todos los registros de hoy eliminados');
+                const blob = new Blob([txtContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `registro_vehiculos_${date.replace(/\//g, '-')}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Archivo TXT descargado correctamente');
             } catch (error) {
-                console.error('Error limpiando registros:', error);
-                showNotification('❌ Error limpiando registros', 'error');
+                console.error("Error exportando a TXT:", error);
+                showNotification('Error al exportar los registros', 'error');
             }
-        });
-
-        // Inicializar aplicación
-        function initApp() {
-            initializeFirebase();
-            document.getElementById('entry-time').value = getCurrentTime();
-            document.getElementById('exit-time').value = getCurrentTime();
         }
 
-        // Iniciar cuando se carga la página
+        // Backup de datos
+        async function backupData() {
+            try {
+                const snapshot = await db.collection('records')
+                    .orderBy('timestamp', 'desc')
+                    .limit(1000)
+                    .get();
+                
+                const backupData = [];
+                snapshot.forEach(doc => {
+                    backupData.push(doc.data());
+                });
+                
+                const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_vehiculos_${getCurrentDate()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Backup descargado correctamente');
+            } catch (error) {
+                console.error("Error haciendo backup:", error);
+                showNotification('Error al hacer backup', 'error');
+            }
+        }
+
+        // Imprimir registros
+        async function printRecords() {
+            const currentDateElement = document.getElementById('current-date').textContent;
+            const date = currentDateElement.split(': ')[1];
+            
+            // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD
+            const [day, month, year] = date.split('/');
+            const dateKey = `${year}-${month}-${day}`;
+            
+            try {
+                const snapshot = await db.collection('records')
+                    .where('date', '==', dateKey)
+                    .orderBy('entryTime')
+                    .get();
+                
+                if (snapshot.empty) {
+                    showNotification('No hay registros para imprimir', 'error');
+                    return;
+                }
+                
+                let printContent = `
+                    <html>
+                    <head>
+                        <title>Registro de Vehículos - ${date}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            h1 { text-align: center; color: #2c3e50; }
+                            h2 { text-align: center; color: #7f8c8d; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                            th { background-color: #f2f2f2; font-weight: bold; }
+                            .header { text-align: center; margin-bottom: 30px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1>REGISTRO DE VEHÍCULOS</h1>
+                            <h2>Fecha: ${date}</h2>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Matrícula</th>
+                                    <th>Empresa</th>
+                                    <th>Entrada</th>
+                                    <th>Salida</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                snapshot.forEach(doc => {
+                    const record = doc.data();
+                    printContent += `
+                        <tr>
+                            <td>${record.plate}</td>
+                            <td>${record.company}</td>
+                            <td>${record.entryTime}</td>
+                            <td>${record.exitTime || '--:--'}</td>
+                        </tr>
+                    `;
+                });
+                
+                printContent += `
+                            </tbody>
+                        </table>
+                        <div style="margin-top: 30px; text-align: right; font-size: 12px;">
+                            Generado el: ${new Date().toLocaleString()}
+                        </div>
+                    </body>
+                    </html>
+                `;
+                
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                printWindow.print();
+            } catch (error) {
+                console.error("Error imprimiendo:", error);
+                showNotification('Error al imprimir', 'error');
+            }
+        }
+
+        // Inicializar la aplicación
+        function initApp() {
+            // Establecer la hora actual en los campos de tiempo
+            document.getElementById('entry-time').value = getCurrentTime();
+            document.getElementById('exit-time').value = getCurrentTime();
+            
+            // Cargar registros del día actual
+            loadTodayRecords();
+            
+            // Configurar el calendario
+            const now = new Date();
+            let currentYear = now.getFullYear();
+            let currentMonth = now.getMonth();
+            
+            function updateCalendar() {
+                document.getElementById('current-month').textContent = 
+                    new Date(currentYear, currentMonth).toLocaleDateString('es-ES', { 
+                        year: 'numeric', 
+                        month: 'long' 
+                    }).toUpperCase();
+                generateCalendar(currentYear, currentMonth);
+            }
+            
+            updateCalendar();
+            
+            // Event listeners para navegación del calendario
+            document.getElementById('prev-month').addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                updateCalendar();
+            });
+            
+            document.getElementById('next-month').addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                updateCalendar();
+            });
+            
+            // Event listener para autocompletar empresa
+            document.getElementById('plate').addEventListener('input', function() {
+                autocompleteCompany(this.value);
+            });
+            
+            // Event listener para el formulario de registro
+            document.getElementById('vehicle-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const plate = document.getElementById('plate').value.toUpperCase();
+                const company = document.getElementById('company').value;
+                const entryTime = document.getElementById('entry-time').value;
+                
+                if (registerEntry(plate, company, entryTime)) {
+                    // Limpiar el formulario después de registrar
+                    document.getElementById('plate').value = '';
+                    document.getElementById('company').value = '';
+                    document.getElementById('entry-time').value = getCurrentTime();
+                }
+            });
+            
+            // Event listener para registrar salida
+            document.getElementById('register-exit').addEventListener('click', function() {
+                const plate = document.getElementById('plate').value.toUpperCase();
+                const exitTime = document.getElementById('exit-time').value;
+                
+                if (plate) {
+                    registerExit(plate, exitTime);
+                } else {
+                    showNotification('Ingrese una matrícula para registrar la salida', 'error');
+                }
+            });
+            
+            // Event listeners para exportar, imprimir y backup
+            document.getElementById('export-txt').addEventListener('click', exportToTxt);
+            document.getElementById('print-records').addEventListener('click', printRecords);
+            document.getElementById('backup-data').addEventListener('click', backupData);
+        }
+
+        // Inicializar la aplicación cuando se carga la página
         document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
-
