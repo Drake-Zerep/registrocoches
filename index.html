@@ -146,6 +146,28 @@
             color: white;
         }
         
+        .btn-exit {
+            background: #e67e22;
+            color: white;
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-exit:hover {
+            background: #d35400;
+            transform: scale(1.05);
+        }
+        
+        .btn-exit:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         .records-table {
             width: 100%;
             border-collapse: collapse;
@@ -296,13 +318,18 @@
             font-size: 12px;
             color: #666;
         }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🚗 Registro Diario de Vehículos</h1>
-            <p>Sistema completo con calendario y base de datos Firebase</p>
+            <p>Sistema completo con salida automática</p>
         </header>
         
         <div class="status-bar">
@@ -575,7 +602,8 @@
                 const row = document.createElement('tr');
                 
                 // Resaltar vehículos en parque
-                if (!data.exitTime || data.exitTime === '') {
+                const isInParking = !data.exitTime || data.exitTime === '';
+                if (isInParking) {
                     row.style.backgroundColor = '#f0f8ff';
                 }
                 
@@ -585,14 +613,52 @@
                     <td>${data.entryTime}</td>
                     <td>${data.exitTime || '--:--'}</td>
                     <td>
-                        <button onclick="deleteRecord('${record.id}')" class="btn-danger">
-                            🗑️
-                        </button>
+                        <div class="action-buttons">
+                            ${isInParking ? 
+                                `<button onclick="registerExitById('${record.id}', '${data.plate}')" class="btn-exit" title="Registrar salida">
+                                    🚪 Salida
+                                </button>` :
+                                `<span style="color: #27ae60; font-weight: 600;">✅ Completado</span>`
+                            }
+                            <button onclick="deleteRecord('${record.id}')" class="btn-danger" title="Eliminar registro">
+                                🗑️
+                            </button>
+                        </div>
                     </td>
                 `;
                 
                 recordsBody.appendChild(row);
             });
+        }
+
+        // Registrar salida por ID (nueva función)
+        async function registerExitById(docId, plate) {
+            if (!isConnected) {
+                showNotification('❌ No hay conexión a Firebase', 'error');
+                return;
+            }
+            
+            const exitTime = getCurrentTime();
+            
+            if (!confirm(`¿Registrar salida para ${plate} a las ${exitTime}?`)) {
+                return;
+            }
+            
+            updateDebug(`Registrando salida para ${plate}...`);
+            
+            try {
+                await db.collection('vehicles').doc(docId).update({
+                    exitTime: exitTime,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showNotification(`✅ Salida registrada para ${plate} a las ${exitTime}`);
+                
+            } catch (error) {
+                console.error('Error registrando salida:', error);
+                updateDebug('❌ Error: ' + error.message);
+                showNotification('❌ Error registrando salida', 'error');
+            }
         }
 
         // Actualizar estadísticas
@@ -688,7 +754,7 @@
             }
         });
 
-        // Registrar salida
+        // Registrar salida desde formulario
         document.getElementById('register-exit').addEventListener('click', async () => {
             if (!isConnected) {
                 showNotification('❌ No hay conexión a Firebase', 'error');
@@ -742,7 +808,7 @@
             }
         });
 
-        // CALENDARIO
+        // CALENDARIO (el mismo código que antes)
         function generateCalendar() {
             const calendarElement = document.getElementById('calendar');
             const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -955,5 +1021,3 @@
     </script>
 </body>
 </html>
-
-
