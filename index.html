@@ -112,6 +112,29 @@
             border-radius: 6px;
             font-size: 16px;
             margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        input.auto-filled {
+            background-color: #f0f8ff;
+            border-color: #3498db;
+        }
+        
+        .auto-complete-info {
+            font-size: 12px;
+            color: #27ae60;
+            margin-top: -8px;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: #e8f6f3;
+            border-radius: 4px;
+            display: none;
         }
         
         button {
@@ -122,6 +145,7 @@
             font-weight: 600;
             cursor: pointer;
             margin: 5px;
+            transition: all 0.3s;
         }
         
         .btn-primary {
@@ -129,9 +153,17 @@
             color: white;
         }
         
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
         .btn-success {
             background: #27ae60;
             color: white;
+        }
+        
+        .btn-success:hover {
+            background: #219955;
         }
         
         .btn-danger {
@@ -139,6 +171,10 @@
             color: white;
             padding: 6px 12px;
             font-size: 12px;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
         }
         
         .btn-warning {
@@ -323,13 +359,44 @@
             display: flex;
             gap: 5px;
         }
+        
+        .companies-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .companies-list h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .company-item {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .company-plate {
+            font-weight: bold;
+            color: #2c3e50;
+            min-width: 80px;
+        }
+        
+        .company-name {
+            flex: 1;
+            color: #34495e;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🚗 Registro Diario de Vehículos</h1>
-            <p>Sistema completo con salida automática</p>
+            <p>Sistema completo con autocompletado automático</p>
         </header>
         
         <div class="status-bar">
@@ -348,6 +415,9 @@
                     <div class="form-group">
                         <label for="plate">Matrícula</label>
                         <input type="text" id="plate" placeholder="Ej: ABC123" required>
+                        <div id="auto-complete-info" class="auto-complete-info">
+                            ✅ Empresa autocompletada desde registros anteriores
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -381,6 +451,15 @@
                     <div class="stat-card">
                         <div class="stat-number" id="completed-vehicles">0</div>
                         <div class="stat-label">Completados</div>
+                    </div>
+                </div>
+                
+                <div class="companies-list">
+                    <h4>🏢 Empresas Registradas</h4>
+                    <div id="companies-container">
+                        <div style="text-align: center; color: #7f8c8d; padding: 10px;">
+                            Cargando empresas...
+                        </div>
                     </div>
                 </div>
                 
@@ -452,6 +531,7 @@
         let isConnected = false;
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
+        let companiesCache = {}; // Cache de empresas para autocompletado rápido
 
         // Mostrar notificación
         function showNotification(message, type = 'success') {
@@ -510,6 +590,7 @@
                 loadTodayRecords();
                 generateCalendar();
                 setupRealtimeListener();
+                loadCompanies(); // Cargar empresas para autocompletado
                     
             } catch (error) {
                 updateDebug('❌ Error: ' + error.message);
@@ -529,6 +610,126 @@
                 statusElement.className = 'status disconnected';
                 isConnected = false;
             }
+        }
+
+        // Cargar empresas para autocompletado
+        async function loadCompanies() {
+            if (!isConnected) return;
+            
+            try {
+                // Obtener todos los registros de los últimos 30 días para construir base de empresas
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const dateString = thirtyDaysAgo.toISOString().split('T')[0];
+                
+                const snapshot = await db.collection('vehicles')
+                    .where('date', '>=', dateString)
+                    .get();
+                
+                companiesCache = {};
+                const companiesMap = new Map();
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const plate = data.plate.toUpperCase();
+                    const company = data.company;
+                    
+                    // Solo guardar la empresa más reciente para cada matrícula
+                    if (!companiesMap.has(plate) || doc.data().timestamp > companiesMap.get(plate).timestamp) {
+                        companiesMap.set(plate, {
+                            company: company,
+                            timestamp: doc.data().timestamp
+                        });
+                    }
+                });
+                
+                // Convertir a objeto simple para cache
+                companiesMap.forEach((value, plate) => {
+                    companiesCache[plate] = value.company;
+                });
+                
+                updateCompaniesList();
+                updateDebug(`✅ ${Object.keys(companiesCache).length} empresas cargadas para autocompletado`);
+                
+            } catch (error) {
+                console.error('Error cargando empresas:', error);
+                updateDebug('❌ Error cargando empresas para autocompletado');
+            }
+        }
+
+        // Actualizar lista visual de empresas
+        function updateCompaniesList() {
+            const container = document.getElementById('companies-container');
+            const companies = Object.entries(companiesCache);
+            
+            if (companies.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #7f8c8d; padding: 10px;">No hay empresas registradas aún</div>';
+                return;
+            }
+            
+            // Ordenar por matrícula
+            companies.sort((a, b) => a[0].localeCompare(b[0]));
+            
+            let html = '';
+            companies.forEach(([plate, company]) => {
+                html += `
+                    <div class="company-item">
+                        <div class="company-plate">${plate}</div>
+                        <div class="company-name">${company}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Autocompletar empresa cuando se escribe matrícula
+        function setupAutoComplete() {
+            const plateInput = document.getElementById('plate');
+            const companyInput = document.getElementById('company');
+            const autoCompleteInfo = document.getElementById('auto-complete-info');
+            
+            plateInput.addEventListener('input', function() {
+                const plate = this.value.toUpperCase().trim();
+                
+                if (plate.length >= 2 && companiesCache[plate]) {
+                    // Encontramos la empresa en el cache
+                    companyInput.value = companiesCache[plate];
+                    companyInput.classList.add('auto-filled');
+                    autoCompleteInfo.style.display = 'block';
+                    
+                    // Mostrar notificación pequeña
+                    setTimeout(() => {
+                        autoCompleteInfo.style.display = 'none';
+                    }, 3000);
+                    
+                } else {
+                    // No encontrado o matrícula muy corta
+                    companyInput.classList.remove('auto-filled');
+                    autoCompleteInfo.style.display = 'none';
+                    
+                    // Si se borra la matrícula, limpiar empresa también
+                    if (plate.length === 0) {
+                        companyInput.value = '';
+                    }
+                }
+            });
+            
+            // También autocompletar al pegar
+            plateInput.addEventListener('paste', function() {
+                setTimeout(() => {
+                    const plate = this.value.toUpperCase().trim();
+                    if (plate.length >= 2 && companiesCache[plate]) {
+                        companyInput.value = companiesCache[plate];
+                        companyInput.classList.add('auto-filled');
+                        autoCompleteInfo.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            autoCompleteInfo.style.display = 'none';
+                        }, 3000);
+                    }
+                }, 100);
+            });
         }
 
         // Escuchar cambios en tiempo real
@@ -631,7 +832,7 @@
             });
         }
 
-        // Registrar salida por ID (nueva función)
+        // Registrar salida por ID
         async function registerExitById(docId, plate) {
             if (!isConnected) {
                 showNotification('❌ No hay conexión a Firebase', 'error');
@@ -739,6 +940,10 @@
                     exitTime: '',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
+                // Actualizar cache de empresas
+                companiesCache[plate] = company;
+                updateCompaniesList();
                 
                 showNotification('✅ Entrada registrada correctamente para ' + plate);
                 
@@ -1012,6 +1217,9 @@
             document.getElementById('entry-time').value = getCurrentTime();
             document.getElementById('exit-time').value = getCurrentTime();
             
+            // Configurar autocompletado
+            setupAutoComplete();
+            
             // Iniciar Firebase
             initializeFirebase();
         }
@@ -1021,3 +1229,4 @@
     </script>
 </body>
 </html>
+
