@@ -182,40 +182,21 @@
             background: #e74c3c;
         }
         
-        .success-info {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
+        .debug-panel {
+            background: #f8f9fa;
             padding: 15px;
             border-radius: 6px;
             margin-top: 15px;
             font-size: 14px;
-            color: #155724;
+            color: #666;
+            border-left: 4px solid #3498db;
         }
         
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .stat-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-        }
-        
-        .stat-number {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .stat-label {
-            font-size: 0.8em;
-            color: #6c757d;
-            margin-top: 5px;
+        .debug-line {
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -223,15 +204,15 @@
     <div class="container">
         <header>
             <h1>🚗 Registro Diario de Vehículos</h1>
-            <p>Sistema con Base de Datos Firebase - ÍNDICE ACTIVADO ✅</p>
+            <p>Sistema con Base de Datos Firebase - SOLUCIÓN ÍNDICE</p>
         </header>
         
         <div class="status-bar">
             <div>
                 <strong id="current-date">Fecha: --/--/----</strong>
             </div>
-            <div id="connection-status" class="status connected">
-                🟢 Conectado
+            <div id="connection-status" class="status disconnected">
+                🔴 Conectando...
             </div>
         </div>
         
@@ -263,24 +244,12 @@
                     <button type="button" id="register-exit" class="btn-success">🚪 Registrar Salida</button>
                 </form>
                 
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="total-today">0</div>
-                        <div class="stat-label">Registros Hoy</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="active-vehicles">0</div>
-                        <div class="stat-label">En Parque</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="completed-vehicles">0</div>
-                        <div class="stat-label">Completados</div>
-                    </div>
-                </div>
-                
-                <div class="success-info">
-                    <strong>✅ Índice Firebase Activado</strong><br>
-                    Los registros se ordenan automáticamente por hora de entrada.
+                <div class="debug-panel">
+                    <strong>🔍 DEBUG - Estado del Sistema:</strong>
+                    <div class="debug-line" id="debug-firebase">Firebase: Conectando...</div>
+                    <div class="debug-line" id="debug-index">Índice: Verificando...</div>
+                    <div class="debug-line" id="debug-records">Registros: Esperando datos...</div>
+                    <div class="debug-line" id="debug-realtime">Tiempo real: Inactivo</div>
                 </div>
             </div>
             
@@ -303,6 +272,11 @@
                 <div id="no-records" style="text-align: center; padding: 40px; color: #7f8c8d;">
                     📭 No hay registros para hoy
                 </div>
+                
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button onclick="forceReload()" class="btn-primary">🔄 Forzar Recarga</button>
+                    <button onclick="testConnection()" class="btn-success">🔍 Probar Conexión</button>
+                </div>
             </div>
         </div>
     </div>
@@ -322,6 +296,12 @@
 
         let db;
         let isConnected = false;
+        let useIndex = false; // Empezamos sin usar índice
+
+        // Actualizar debug
+        function updateDebug(elementId, message) {
+            document.getElementById(elementId).textContent = message;
+        }
 
         // Mostrar notificación
         function showNotification(message, type = 'success') {
@@ -360,37 +340,87 @@
 
         // Inicializar Firebase
         function initializeFirebase() {
+            updateDebug('debug-firebase', 'Firebase: Inicializando...');
+            
             try {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
-                isConnected = true;
                 
-                showNotification('✅ Conectado a Firebase - Índice activado', 'success');
-                loadTodayRecords();
-                setupRealtimeListener();
+                updateDebug('debug-firebase', 'Firebase: ✅ Inicializado');
+                testIndexConnection();
                     
             } catch (error) {
-                console.error('Error inicializando Firebase:', error);
+                updateDebug('debug-firebase', 'Firebase: ❌ Error: ' + error.message);
                 showNotification('❌ Error en Firebase: ' + error.message, 'error');
             }
         }
 
-        // Escuchar cambios en tiempo real CON ORDENACIÓN (índice activado)
+        // Probar si el índice funciona
+        async function testIndexConnection() {
+            updateDebug('debug-index', 'Índice: Probando conexión con ordenación...');
+            
+            const today = getCurrentDate();
+            
+            try {
+                // Intentar con índice primero
+                const testSnapshot = await db.collection('vehicles')
+                    .where('date', '==', today)
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .get();
+                
+                useIndex = true;
+                updateDebug('debug-index', 'Índice: ✅ ACTIVADO - Ordenación funcionando');
+                updateConnectionStatus(true, 'Conectado (Índice activo)');
+                showNotification('✅ Índice Firebase funcionando correctamente', 'success');
+                
+            } catch (error) {
+                // Si falla el índice, usar sin ordenación
+                useIndex = false;
+                updateDebug('debug-index', 'Índice: ⚠️ DESACTIVADO - Usando ordenación manual');
+                updateConnectionStatus(true, 'Conectado (Sin índice)');
+                showNotification('⚠️ Usando modo seguro (sin índice)', 'success');
+            }
+            
+            // Cargar registros y configurar listener
+            loadTodayRecords();
+            setupRealtimeListener();
+        }
+
+        function updateConnectionStatus(connected, message = '') {
+            const statusElement = document.getElementById('connection-status');
+            if (connected) {
+                statusElement.textContent = '🟢 ' + message;
+                statusElement.className = 'status connected';
+                isConnected = true;
+            } else {
+                statusElement.textContent = '🔴 ' + message;
+                statusElement.className = 'status disconnected';
+                isConnected = false;
+            }
+        }
+
+        // Escuchar cambios en tiempo real
         function setupRealtimeListener() {
             const today = getCurrentDate();
             
-            db.collection('vehicles')
-                .where('date', '==', today)
-                .orderBy('timestamp', 'desc') // ✅ ORDENACIÓN ACTIVADA
-                .onSnapshot((snapshot) => {
-                    loadTodayRecords();
-                }, (error) => {
-                    console.error('Error en listener:', error);
-                    showNotification('❌ Error en tiempo real: ' + error.message, 'error');
-                });
+            let query = db.collection('vehicles').where('date', '==', today);
+            
+            // Solo ordenar si el índice está activo
+            if (useIndex) {
+                query = query.orderBy('timestamp', 'desc');
+            }
+            
+            query.onSnapshot((snapshot) => {
+                updateDebug('debug-realtime', 'Tiempo real: ✅ Datos actualizados');
+                loadTodayRecords();
+            }, (error) => {
+                updateDebug('debug-realtime', 'Tiempo real: ❌ Error: ' + error.message);
+                console.error('Error en listener:', error);
+            });
         }
 
-        // Cargar registros del día CON ORDENACIÓN (índice activado)
+        // Cargar registros del día
         async function loadTodayRecords() {
             if (!isConnected) return;
             
@@ -398,40 +428,25 @@
             document.getElementById('current-date').textContent = 
                 `Fecha: ${formatDisplayDate(today)}`;
             
+            updateDebug('debug-records', 'Registros: Cargando...');
+            
             try {
-                const snapshot = await db.collection('vehicles')
-                    .where('date', '==', today)
-                    .orderBy('timestamp', 'desc') // ✅ ORDENACIÓN ACTIVADA
-                    .get();
+                let query = db.collection('vehicles').where('date', '==', today);
                 
+                // Solo ordenar si el índice está activo
+                if (useIndex) {
+                    query = query.orderBy('timestamp', 'desc');
+                }
+                
+                const snapshot = await query.get();
+                
+                updateDebug('debug-records', `Registros: ✅ ${snapshot.size} encontrados`);
                 displayRecords(snapshot);
-                updateStats(snapshot);
                 
             } catch (error) {
-                console.error('Error cargando registros:', error);
-                showNotification('❌ Error cargando registros: ' + error.message, 'error');
+                updateDebug('debug-records', 'Registros: ❌ Error: ' + error.message);
+                showNotification('❌ Error cargando registros', 'error');
             }
-        }
-
-        // Actualizar estadísticas
-        function updateStats(snapshot) {
-            let totalToday = 0;
-            let activeVehicles = 0;
-            let completedVehicles = 0;
-            
-            snapshot.forEach((doc) => {
-                totalToday++;
-                const data = doc.data();
-                if (!data.exitTime || data.exitTime === '') {
-                    activeVehicles++;
-                } else {
-                    completedVehicles++;
-                }
-            });
-            
-            document.getElementById('total-today').textContent = totalToday;
-            document.getElementById('active-vehicles').textContent = activeVehicles;
-            document.getElementById('completed-vehicles').textContent = completedVehicles;
         }
 
         // Mostrar registros en tabla
@@ -448,13 +463,32 @@
             
             noRecords.style.display = 'none';
             
+            let records = [];
             snapshot.forEach((doc) => {
-                const data = doc.data();
+                records.push({
+                    id: doc.id,
+                    data: doc.data()
+                });
+            });
+            
+            // Si no hay índice, ordenar manualmente por hora de entrada
+            if (!useIndex) {
+                records.sort((a, b) => {
+                    if (a.data.timestamp && b.data.timestamp) {
+                        return b.data.timestamp.toDate() - a.data.timestamp.toDate();
+                    }
+                    return b.data.entryTime.localeCompare(a.data.entryTime);
+                });
+            }
+            
+            records.forEach((record) => {
+                const data = record.data;
                 const row = document.createElement('tr');
                 
                 // Resaltar vehículos que aún están en el parque
                 if (!data.exitTime || data.exitTime === '') {
                     row.style.backgroundColor = '#f0f8ff';
+                    row.title = 'Vehículo en parque';
                 }
                 
                 row.innerHTML = `
@@ -463,7 +497,7 @@
                     <td>${data.entryTime}</td>
                     <td>${data.exitTime || '--:--'}</td>
                     <td>
-                        <button onclick="deleteRecord('${doc.id}')" class="btn-danger">
+                        <button onclick="deleteRecord('${record.id}')" class="btn-danger">
                             🗑️
                         </button>
                     </td>
@@ -504,6 +538,8 @@
                 return;
             }
             
+            updateDebug('debug-records', 'Registros: Agregando nuevo vehículo...');
+            
             try {
                 const today = getCurrentDate();
                 
@@ -538,6 +574,7 @@
                 
             } catch (error) {
                 console.error('Error registrando entrada:', error);
+                updateDebug('debug-records', 'Registros: ❌ Error agregando: ' + error.message);
                 showNotification('❌ Error registrando entrada: ' + error.message, 'error');
             }
         });
@@ -596,6 +633,17 @@
             }
         });
 
+        // Funciones de utilidad
+        function forceReload() {
+            updateDebug('debug-records', 'Registros: Recarga forzada...');
+            loadTodayRecords();
+        }
+
+        function testConnection() {
+            updateDebug('debug-firebase', 'Firebase: Probando conexión...');
+            testIndexConnection();
+        }
+
         // Inicializar aplicación
         function initApp() {
             // Configurar hora actual
@@ -611,3 +659,4 @@
     </script>
 </body>
 </html>
+
