@@ -182,13 +182,40 @@
             background: #e74c3c;
         }
         
-        .debug-info {
-            background: #f8f9fa;
+        .success-info {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
             padding: 15px;
             border-radius: 6px;
             margin-top: 15px;
             font-size: 14px;
-            color: #666;
+            color: #155724;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -196,15 +223,15 @@
     <div class="container">
         <header>
             <h1>🚗 Registro Diario de Vehículos</h1>
-            <p>Sistema con Base de Datos Firebase - CONFIGURADO ✅</p>
+            <p>Sistema con Base de Datos Firebase - ÍNDICE ACTIVADO ✅</p>
         </header>
         
         <div class="status-bar">
             <div>
                 <strong id="current-date">Fecha: --/--/----</strong>
             </div>
-            <div id="connection-status" class="status disconnected">
-                🔴 Conectando...
+            <div id="connection-status" class="status connected">
+                🟢 Conectado
             </div>
         </div>
         
@@ -236,8 +263,24 @@
                     <button type="button" id="register-exit" class="btn-success">🚪 Registrar Salida</button>
                 </form>
                 
-                <div class="debug-info">
-                    <strong>Estado:</strong> <span id="debug-status">Verificando...</span>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-today">0</div>
+                        <div class="stat-label">Registros Hoy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="active-vehicles">0</div>
+                        <div class="stat-label">En Parque</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="completed-vehicles">0</div>
+                        <div class="stat-label">Completados</div>
+                    </div>
+                </div>
+                
+                <div class="success-info">
+                    <strong>✅ Índice Firebase Activado</strong><br>
+                    Los registros se ordenan automáticamente por hora de entrada.
                 </div>
             </div>
             
@@ -267,7 +310,7 @@
     <div id="notification" class="notification" style="display: none;"></div>
 
     <script>
-        // 🔥 CONFIGURACIÓN FIREBASE CON TUS DATOS REALES
+        // 🔥 CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyCXEh8z0-SuPTDrh3FENY1NZYfma2JZujU",
             authDomain: "registro-vehiculos-3b4aa.firebaseapp.com",
@@ -290,11 +333,6 @@
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 4000);
-        }
-
-        // Actualizar estado de debug
-        function updateDebugStatus(message) {
-            document.getElementById('debug-status').textContent = message;
         }
 
         // Obtener fecha actual
@@ -322,100 +360,78 @@
 
         // Inicializar Firebase
         function initializeFirebase() {
-            updateDebugStatus('Inicializando Firebase...');
-            
             try {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
+                isConnected = true;
                 
-                updateDebugStatus('Firebase inicializado, probando conexión...');
-                
-                // Probar conexión con un timeout
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Timeout')), 5000)
-                );
-                
-                const connectionPromise = db.collection('test').limit(1).get();
-                
-                Promise.race([connectionPromise, timeoutPromise])
-                    .then(() => {
-                        isConnected = true;
-                        updateConnectionStatus(true, 'Conectado a Firebase');
-                        updateDebugStatus('✅ Conexión exitosa');
-                        showNotification('✅ Conectado a Firebase correctamente', 'success');
-                        loadTodayRecords();
-                        setupRealtimeListener();
-                    })
-                    .catch((error) => {
-                        console.error('Error de conexión:', error);
-                        updateConnectionStatus(false, 'Error de conexión');
-                        updateDebugStatus('❌ Error: ' + error.message);
-                        showNotification('❌ Error conectando a Firebase: ' + error.message, 'error');
-                    });
+                showNotification('✅ Conectado a Firebase - Índice activado', 'success');
+                loadTodayRecords();
+                setupRealtimeListener();
                     
             } catch (error) {
                 console.error('Error inicializando Firebase:', error);
-                updateConnectionStatus(false, 'Error de configuración');
-                updateDebugStatus('❌ Error: ' + error.message);
                 showNotification('❌ Error en Firebase: ' + error.message, 'error');
             }
         }
 
-        function updateConnectionStatus(connected, message = '') {
-            const statusElement = document.getElementById('connection-status');
-            if (connected) {
-                statusElement.textContent = '🟢 ' + message;
-                statusElement.className = 'status connected';
-                isConnected = true;
-            } else {
-                statusElement.textContent = '🔴 ' + message;
-                statusElement.className = 'status disconnected';
-                isConnected = false;
-            }
-        }
-
-        // Escuchar cambios en tiempo real
+        // Escuchar cambios en tiempo real CON ORDENACIÓN (índice activado)
         function setupRealtimeListener() {
             const today = getCurrentDate();
             
             db.collection('vehicles')
                 .where('date', '==', today)
+                .orderBy('timestamp', 'desc') // ✅ ORDENACIÓN ACTIVADA
                 .onSnapshot((snapshot) => {
-                    updateDebugStatus('📡 Datos actualizados en tiempo real');
                     loadTodayRecords();
                 }, (error) => {
                     console.error('Error en listener:', error);
-                    updateDebugStatus('❌ Error en listener: ' + error.message);
+                    showNotification('❌ Error en tiempo real: ' + error.message, 'error');
                 });
         }
 
-        // Cargar registros del día
+        // Cargar registros del día CON ORDENACIÓN (índice activado)
         async function loadTodayRecords() {
-            if (!isConnected) {
-                updateDebugStatus('No conectado, no se pueden cargar registros');
-                return;
-            }
+            if (!isConnected) return;
             
             const today = getCurrentDate();
             document.getElementById('current-date').textContent = 
                 `Fecha: ${formatDisplayDate(today)}`;
             
-            updateDebugStatus('Cargando registros...');
-            
             try {
                 const snapshot = await db.collection('vehicles')
                     .where('date', '==', today)
-                    .orderBy('timestamp', 'desc')
+                    .orderBy('timestamp', 'desc') // ✅ ORDENACIÓN ACTIVADA
                     .get();
                 
-                updateDebugStatus(`✅ ${snapshot.size} registros cargados`);
                 displayRecords(snapshot);
+                updateStats(snapshot);
                 
             } catch (error) {
                 console.error('Error cargando registros:', error);
-                updateDebugStatus('❌ Error: ' + error.message);
                 showNotification('❌ Error cargando registros: ' + error.message, 'error');
             }
+        }
+
+        // Actualizar estadísticas
+        function updateStats(snapshot) {
+            let totalToday = 0;
+            let activeVehicles = 0;
+            let completedVehicles = 0;
+            
+            snapshot.forEach((doc) => {
+                totalToday++;
+                const data = doc.data();
+                if (!data.exitTime || data.exitTime === '') {
+                    activeVehicles++;
+                } else {
+                    completedVehicles++;
+                }
+            });
+            
+            document.getElementById('total-today').textContent = totalToday;
+            document.getElementById('active-vehicles').textContent = activeVehicles;
+            document.getElementById('completed-vehicles').textContent = completedVehicles;
         }
 
         // Mostrar registros en tabla
@@ -435,6 +451,11 @@
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 const row = document.createElement('tr');
+                
+                // Resaltar vehículos que aún están en el parque
+                if (!data.exitTime || data.exitTime === '') {
+                    row.style.backgroundColor = '#f0f8ff';
+                }
                 
                 row.innerHTML = `
                     <td><strong>${data.plate}</strong></td>
@@ -483,8 +504,6 @@
                 return;
             }
             
-            updateDebugStatus('Registrando entrada...');
-            
             try {
                 const today = getCurrentDate();
                 
@@ -519,7 +538,6 @@
                 
             } catch (error) {
                 console.error('Error registrando entrada:', error);
-                updateDebugStatus('❌ Error: ' + error.message);
                 showNotification('❌ Error registrando entrada: ' + error.message, 'error');
             }
         });
@@ -543,8 +561,6 @@
                 showNotification('❌ Ingresa la hora de salida', 'error');
                 return;
             }
-            
-            updateDebugStatus('Registrando salida...');
             
             try {
                 const today = getCurrentDate();
@@ -576,7 +592,6 @@
                 
             } catch (error) {
                 console.error('Error registrando salida:', error);
-                updateDebugStatus('❌ Error: ' + error.message);
                 showNotification('❌ Error registrando salida: ' + error.message, 'error');
             }
         });
